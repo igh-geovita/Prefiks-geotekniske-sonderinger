@@ -1,53 +1,77 @@
 import streamlit as st
 import os
+import io
+import zipfile
 
-st.title("Prefiksbehandler for geotekniske sonderinger")
+st.title("🔤 Prefiksbehandler for geotekniske sonderinger")
 
-# Brukerinput
-path = st.text_input("Skriv inn filbane til mappen med filene (AUTOGRAF-mappa):", "")
-action = st.selectbox("Velg handling:", ["Legg til prefiks", "Endre prefiks", "Fjern prefiks"])
-prefix = st.text_input("Skriv inn prefikset du ønsker å bruke (for Legg til/Endre):", "")
+# Opplasting av filer
+uploaded_files = st.file_uploader(
+    "Last opp filene du ønsker å behandle (for eksempel alle fra AUTOGRAF-mappa):",
+    accept_multiple_files=True
+)
+
+# Valg av handling
+action = st.selectbox(
+    "Velg handling:",
+    ["Legg til prefiks", "Endre prefiks", "Fjern prefiks"]
+)
+
+# Prefiks-input
+prefix = st.text_input("Skriv inn nytt prefiks (for Legg til / Endre):", "")
+
+# For endre/fjerne
+old_prefix = ""
+if action in ["Endre prefiks", "Fjern prefiks"]:
+    old_prefix = st.text_input("Skriv inn gammelt prefiks:", "")
 
 # Kjør knapp
-if st.button("Kjør"):
-    if not os.path.exists(path):
-        st.error("Filen eller mappen finnes ikke. Sjekk banen og prøv igjen.")
+if st.button("Kjør behandling"):
+    if not uploaded_files:
+        st.warning("Du må laste opp minst én fil.")
     else:
-        os.chdir(path)
-        files = os.listdir(path)
+        processed_files = []
         count = 0
 
-        # Legge til prefiks
-        if action == "Legg til prefiks":
-            for file in files:
-                f, e = os.path.splitext(file)
+        for uploaded_file in uploaded_files:
+            file_name = uploaded_file.name
+            f, e = os.path.splitext(file_name)
+            new_name = file_name  # fallback
+
+            # Legge til prefiks
+            if action == "Legg til prefiks":
                 if not f.startswith(prefix):
-                    os.rename(file, f"{prefix}{f}{e}")
+                    new_name = f"{prefix}{f}{e}"
                     count += 1
-            st.success(f"Prefiks '{prefix}' lagt til {count} filer.")
 
-        # Endre prefiks
-        elif action == "Endre prefiks":
-            old_prefix = st.text_input("Skriv inn gammelt prefiks:", "")
-            if old_prefix:
-                for file in files:
-                    f, e = os.path.splitext(file)
-                    if f.startswith(old_prefix):
-                        new_name = f.replace(old_prefix, prefix, 1)
-                        os.rename(file, f"{new_name}{e}")
-                        count += 1
-                st.success(f"Prefiks '{old_prefix}' endret til '{prefix}' for {count} filer.")
-            else:
-                st.warning("Du må skrive inn gammelt prefiks for å endre.")
-
-        # Fjerne prefiks
-        elif action == "Fjern prefiks":
-            for file in files:
-                f, e = os.path.splitext(file)
+            # Endre prefiks
+            elif action == "Endre prefiks" and old_prefix:
                 if f.startswith(old_prefix):
-                    new_name = f.replace(old_prefix, "", 1)
-                    os.rename(file, f"{new_name}{e}")
+                    new_name = f.replace(old_prefix, prefix, 1) + e
                     count += 1
-                st.success(f"Prefiks '{old_prefix}' fjernet for {count} filer.")
-            else:
-                st.warning("Du må skrive inn gammelt prefiks for å endre.")
+
+            # Fjerne prefiks
+            elif action == "Fjern prefiks" and old_prefix:
+                if f.startswith(old_prefix):
+                    new_name = f.replace(old_prefix, "", 1) + e
+                    count += 1
+
+            # Lagre innholdet med nytt navn
+            processed_files.append((new_name, uploaded_file.read()))
+
+        # Opprett en zip-fil med resultatet
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w") as zipf:
+            for fname, data in processed_files:
+                zipf.writestr(fname, data)
+
+        zip_buffer.seek(0)
+
+        # Nedlastbar ZIP
+        st.success(f"✅ Ferdig! {count} filer ble behandlet.")
+        st.download_button(
+            label="⬇️ Last ned oppdaterte filer (ZIP)",
+            data=zip_buffer,
+            file_name="prefiksbehandlede_filer.zip",
+            mime="application/zip"
+        )
