@@ -23,7 +23,7 @@ prefix = st.text_input("Skriv inn nytt prefiks (for Legg til / Endre):", "")
 # For endre/fjerne
 old_prefix = ""
 if action in ["Endre prefiks", "Fjern prefiks"]:
-    old_prefix = st.text_input("Skriv inn gammelt prefiks:", "")
+    old_prefix = st.text_input("Skriv inn gammelt prefiks (for Fjerne/Endre):", "")
 
 # Kjør knapp
 if st.button("Kjør behandling"):
