@@ -43,11 +43,11 @@ if st.button("Kjør"):
         # Fjerne prefiks
         elif action == "Fjern prefiks":
             for file in files:
-               f, e = os.path.splitext(file)
-                    if f.startswith(old_prefix):
-                        new_name = f.replace(old_prefix, "", 1)
-                        os.rename(file, f"{new_name}{e}")
-                        count += 1
+                f, e = os.path.splitext(file)
+                if f.startswith(old_prefix):
+                    new_name = f.replace(old_prefix, "", 1)
+                    os.rename(file, f"{new_name}{e}")
+                    count += 1
                 st.success(f"Prefiks '{old_prefix}' fjernet for {count} filer.")
             else:
                 st.warning("Du må skrive inn gammelt prefiks for å endre.")
